@@ -1,25 +1,192 @@
-<!DOCTYPE html>
-<html lang="en">
-
+<!doctype html>
+<html>
 <head>
-
-    <title>Demo</title>
-
-
-
+  <title>Chirp JavaScript SDK Demo</title>
 </head>
-
 <body>
-    <h1> Hello </h1>
-<script type="text/javascript" src="//unpkg.com/chirp-js-sdk"
+<div id="main">
+  <h1>Chirp JavaScript SDK Demo</h1>
+  <p id="version">Version: <strong id="versionNumber"></strong></p>
+  <div id="status">Status: <span id="statusInner">Authenticating</span></div>
+  <div class="buttons" id="setProtocolButtons">
+    <div class="switch">
+      <h2>Ultrasonic: </h2>
+      <input id="ultrasonic-toggle" class="cmn-toggle cmn-toggle-round" onchange="changeProtocol(this.checked)"
+             type="checkbox">
+      <label for="ultrasonic-toggle"></label>
+    </div>
+  </div>
 
-<script>
-  const chirp = new ChirpConnect(ecd17fD8dC5D6D4ae3C4f9746)
-  const payload = new TextEncoder('utf-8').encode('hello dennis')
-  chirp.send(payload)
-  
-</script>
+  <div class="buttons">
+    <a onclick="return playChirp(identifiers[currentProtocol].identifier);" href="#">Play Chirp</a>
+    <a onclick="return playOfflineChirp(identifiers[currentProtocol].identifierEncoded);" href="#">Play Chirp (offline)</a>
+    <a onclick="return createChirp();" href="#">Create Chirp with associated data</a>
+    <a onclick="return getChirp('parrotbill');" href="#">Get Chirp associated data</a>
+    <a onclick="return encodeChirp(identifiers[currentProtocol].identifier);" href="#">Encode Chirp identifier</a>
+  </div>
 
+  <div id="results"></div>
+
+  <script type="text/javascript" src="//unpkg.com/chirp-js-sdk"
+</div>
+
+<div id="footer">
+  <p>
+    Copyright &copy; 2016 Asio Ltd.<br/>
+    <a href="http://developers.chirp.io/">Chirp Developers Hub</a><br/><br/>
+    <a id="chester" onclick="return playChirp('0123456789dvnii64q');" href="#"><img src="styles/icons/chester.png" width="36"
+                                                                                    alt="•v•"/></a>
+  </p>
+</div>
 </body>
-
+<script>
+  if (window.location.href.indexOf('file://') !== -1) {
+    window.alert('To use the Chirp SDK, web content must be served from an HTTP server, not opened from the file system. Look at the included README for instructions on getting started.');
+  }
+  var result = document.getElementById("results");
+  var authStatus = document.getElementById("statusInner");
+  //available protocols
+  var STANDARD = "standard";
+  var ULTRASONIC = "ultrasonic";
+  //default identifiers
+  var identifiers = {
+    standard: {
+      identifier: "parrotbill",
+      identifierEncoded: "parrotbilllllahcm4"
+    },
+    ultrasonic: {
+      identifier: 'abcde123',
+      identifierEncoded: '123abcdef633c7'
+    }
+  };
+  var currentProtocol = STANDARD;
+  function changeProtocol(ultrasonic) {
+    currentProtocol = ultrasonic ? ULTRASONIC : STANDARD;
+    chirpSdk.setProtocolNamed(currentProtocol);
+    console.info("Switching protocol to " + currentProtocol);
+    return false;
+  }
+  /**------------------------------------------------------------------------
+   * Create a new instance of ChirpSDK. This should be done only once. Currently SDK does not support multiple instances.
+   * Replace `YOUR_APP_KEY` with your application's key.
+   * At this point, `ChirpSDK` will automatically try to authenticate your application.
+   * To catch the authentication response, you can pass a callback function as a second argument.
+   *------------------------------------------------------------------------*/
+  var chirpSdk = new ChirpSDK("YOUR_APP_KEY", function (err, data) {
+    if (err) {
+      console.error(err);
+      authStatus.innerHTML = String(err);
+    }
+    else {
+      if (data.access.protocols && data.access.protocols.indexOf("set") >= 0) {
+        document.getElementById("setProtocolButtons").style.display = "block";
+      }
+      console.info("Authenticated OK.");
+      authStatus.innerHTML = "Authenticated";
+    }
+  });
+  /**
+   * ===> Create a Chirp <===
+   * After the application is successfully authenticated, you can start creating new chirps.
+   * The function below creates a chirp with associated JSON data, with key `foo` and value `bar`.
+   **/
+  function createChirp() {
+    chirpSdk.create({foo: 'bar'}, function (err, chirp) {
+      if (err) {
+        showMessage(String(err), true);
+      } else {
+        showMessage('Created new chirp: ' + chirp.shortcode + ' <a class="button" href="#" onclick="return playChirp(\'' + chirp.shortcode + '\');">Play</a>');
+      }
+    });
+    return false;
+  }
+  /**
+   * ===> Play a Chirp <===
+   * The response contains two identifiers, the `shortcode` and `longcode`.
+   * The new SDK will use new naming convention which says that `shortcode` is an `identifier` and `longcode` is an `encodedIdentifier`.
+   * The `identifierEncoded` represents the `identifier` with error-correction symbols appended, preparing it for audio playback.
+   * If you want to play a chirp in **offline** mode, you can play the `identifierEncoded` directly.
+   **/
+  function playOfflineChirp(identifierEncoded) {
+    chirpSdk.chirp(identifierEncoded, function (err, chirp) {
+      if (err) {
+        showMessage(String(err), true);
+      }
+      else {
+        showMessage("Finished playing chirp: " + chirp, false);
+      }
+    });
+    return false;
+  }
+  /**
+   *You can also pass the `identifier` directly.
+   * However, in this case, you'll need an internet connection so that the SDK is able to add error correction to the `identifier`.
+   * There will be a brief delay whilst the client contacts the server to obtain the error correction characters.
+   **/
+  function playChirp(identifier) {
+    chirpSdk.chirp(identifier, function (err, chirp) {
+      if (err) {
+        showMessage(String(err), true);
+      }
+      else {
+        showMessage("Finished playing chirp: " + chirp, false);
+      }
+    });
+    return false;
+  }
+  /** ===> Get a Chirp <===
+   * To get the data that was attached to your chirp, you can retrieve it based on the `identifier`.
+   **/
+  function getChirp(identifier) {
+    chirpSdk.get(identifier, function (err, data) {
+      if (err) {
+        showMessage(String(err), true);
+      }
+      else {
+        showMessage("Read associated data: " + JSON.stringify(data, null, 4), false);
+      }
+    });
+    return false;
+  }
+  /**
+   * ===> Encode a Chirp <===
+   * You can also encode your own `identifier`, which should be 10 characters in length
+   * (see [Anatomy of a Chirp](http://developers.chirp.io/v1/docs/chirps-shortcodes)).
+   **/
+  function encodeChirp(identifier) {
+    chirpSdk.encode(identifier, function (err, identifierEncoded) {
+      if (err) {
+        showMessage(String(err), true);
+      }
+      else {
+        showMessage('Encoded chirp: ' + identifierEncoded + ' <a class="button" href="#" onclick="return playChirp(\'' + identifierEncoded + '\');">Play</a>', false);
+      }
+    });
+    return false;
+  }
+  function showMessage(message, isError) {
+    if (isError) {
+      result.innerHTML = "<div class='result error'>" + message + "</div>" + result.innerHTML;
+      console.error(message);
+    } else {
+      result.innerHTML = "<div class='result'>" + message + "</div>" + result.innerHTML;
+      console.info(message);
+    }
+  }
+  //append SDK version to DOM
+  document.getElementById("versionNumber").innerHTML = chirpSdk.version;
+  document.title = "Chirp JavaScript SDK Demo " + chirpSdk.version;
+</script>
 </html>
+© 2019 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+Help
+Contact GitHub
+Pricing
+API
+Training
+Blog
+About
