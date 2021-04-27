@@ -1,0 +1,52 @@
+How to do it
+
+1. Install
+   1. Harder than expected
+   2. http://jacquelin.potier.free.fr/winapioverride32/documentation.php
+   3. 2. Target process
+   1. Easy to do manually
+3. Inject
+   1. Easy
+   2. Nothing actually checks for hooks being thrown
+4. Hook functions
+   1. INktSpyMgr::CreateHooksCollection 
+   2. Functions
+      1. WS2_32.dll
+         1. send 
+         2. recv 
+         3. sendto 
+         4. recvfrom 
+         5. WSASend 
+         6. WSARecv 
+      2. Secur32.dll
+         1. EncryptMessage (Secur32.dll)
+         2. DecryptMessage (Secur32.dll)
+      3. Advapi32.dll
+         1. CryptEncrypt
+         2. CryptDecrypt
+      4. WinINet
+         1. All of em
+      5. WinHTTP
+         1. All of em
+      6. Whatever the fuck Cobalt Strike Uses for E ncoding Shit
+      7. Whatever everyone else uses for encoding shit
+      8. Time
+         1. DGA Sinkholing
+
+
+5. Intercept encryption functions
+   1. Log Data
+6. Intercept send functions
+   1. Log Data
+7. Attack Types
+   1. Exploit
+      1. Fuzzing
+      2. Exploit
+   2. W3af
+   3. Wapiti
+   4. Injection
+      1. OS Command
+      2. Database
+         1. SQL
+   5. Regular Web Stuff
+   6.
